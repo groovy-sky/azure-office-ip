@@ -4,6 +4,7 @@ import requests
 import json
 import os
 from datetime import datetime
+import azure.functions as func
 
 class EndpointsClient:
   def __init__(self, connection_string=os.environ['AZURE_STORAGE_CONNECTION_STRING'], container_name='$web'):
@@ -130,8 +131,9 @@ class EndpointsClient:
         files.append(relative_path)
     return files
 
-client = EndpointsClient()
-client.get_o365_endpoints()
-client.export_locally()
-client.upload_dir()
-client.new_main_page()
+def main(mytimer: func.TimerRequest) -> None:
+        client = EndpointsClient()
+        client.get_o365_endpoints()
+        client.export_locally()
+        client.upload_dir()
+        client.new_main_page()
