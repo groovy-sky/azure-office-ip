@@ -15,7 +15,8 @@ class EndpointsClient:
     self.main_page = 'main.html'
     self.out_path = 'artifacts'
     self.artifacts_path = working_path + '/' + self.out_path
-    os.mkdir(self.artifacts_path)
+    if not os.path.exists(self.artifacts_path):
+      os.mkdir(self.artifacts_path)
     self.clear()
   def clear(self):
     self.sorted_ip_list = {}
@@ -131,7 +132,7 @@ class EndpointsClient:
         files.append(relative_path)
     return files
 
-def main():
+def main(mytimer: func.TimerRequest) -> None:
   client = EndpointsClient(storage_connection_string=os.environ['AZURE_STORAGE_CONNECTION_STRING'], storage_container_name='$web',working_path='/tmp')
   client.get_o365_endpoints()
   client.export_locally()
