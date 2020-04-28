@@ -1,21 +1,21 @@
 from azure.storage.blob import BlobServiceClient,ContentSettings
-import uuid
 import requests
 import json
 import os
 from datetime import datetime
+import uuid
 import azure.functions as func
 
 class EndpointsClient:
-  def __init__(self, connection_string=os.environ['AZURE_STORAGE_CONNECTION_STRING'], container_name='$web'):
-    service_client = BlobServiceClient.from_connection_string(connection_string)
-    self.client = service_client.get_container_client(container_name)
+  def __init__(self, storage_connection_string, storage_container_name, working_path):
+    service_client = BlobServiceClient.from_connection_string(storage_connection_string)
+    self.client = service_client.get_container_client(storage_container_name)
     self.uuid = str(uuid.uuid4())
-    self.current_path = os.getcwd()
-    self.container_name = container_name
+    self.container_name = storage_container_name
     self.main_page = 'main.html'
     self.out_path = 'artifacts'
-    self.artifacts_path = self.current_path + '/' + self.out_path
+    self.artifacts_path = working_path + '/' + self.out_path
+    os.mkdir(self.artifacts_path)
     self.clear()
   def clear(self):
     self.sorted_ip_list = {}
@@ -43,8 +43,8 @@ class EndpointsClient:
             for item in self.sorted_ip_list[key]:
                 out_file.write("%s\n" % item)
   def new_main_page(self):
-      artifacts_files = self.ls_files(self.out_path)
-      main_page_content = '<html>\n<head>\n</head>\n<body>\n Generated date:<br>' + str(datetime.now()) + '<br><br>Generate list:<br>'
+      artifacts_files = os.listdir(self.artifacts_path)
+      main_page_content = '<html>\n<head>\n</head>\n<body>\n Generated date:<br>' + str(datetime.now()) + '<br><br>Generated list:<br>'
       for item in artifacts_files:
         main_page_content = main_page_content + '<a href="' + self.out_path + '/' + item + '" download>' + item + '</href>\n <br>'
       main_page_content += '</body></html>'
@@ -131,9 +131,9 @@ class EndpointsClient:
         files.append(relative_path)
     return files
 
-def main(mytimer: func.TimerRequest) -> None:
-        client = EndpointsClient()
-        client.get_o365_endpoints()
-        client.export_locally()
-        client.upload_dir()
-        client.new_main_page()
+def main():
+  client = EndpointsClient(storage_connection_string=os.environ['AZURE_STORAGE_CONNECTION_STRING'], storage_container_name='$web',working_path='/tmp')
+  client.get_o365_endpoints()
+  client.export_locally()
+  client.upload_dir()
+  client.new_main_page()
