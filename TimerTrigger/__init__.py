@@ -39,11 +39,17 @@ class EndpointsClient:
         elif ip_list:
             self.sorted_ip_list[item['serviceAreaDisplayName']].extend(ip_list)
   def export_locally(self):
+    '''
+    Store obtained data locally
+    '''
     for key in self.sorted_ip_list.keys():
         with open(f"{self.artifacts_path}/{key}.txt", 'w') as out_file:
             for item in self.sorted_ip_list[key]:
                 out_file.write("%s\n" % item)
   def new_main_page(self):
+    '''
+    Generate main webpage
+    '''
       artifacts_files = os.listdir(self.artifacts_path)
       main_page_content = '<html>\n<head>\n</head>\n<body>\n Generated date:<br>' + str(datetime.now()) + '<br><br>Generated list:<br>'
       for item in artifacts_files:
