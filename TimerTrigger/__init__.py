@@ -15,20 +15,28 @@ class EndpointsClient:
     self.main_page = 'main.html'
     self.out_path = 'artifacts'
     self.artifacts_path = working_path + '/' + self.out_path
+    self.main_page_path = working_path + '/' + self.main_page
     if not os.path.exists(self.artifacts_path):
       os.mkdir(self.artifacts_path)
     self.clear()
   def clear(self):
     self.sorted_ip_list = {}
     self.ip_list = None
+  def get_azure_endpoints(self):
+    '''
+    Get Azure Datacenter endpoints IP addresses
+    '''
+    self.clear()
+    azure_response = requests.post("https://azuredcip.azurewebsites.net/getazuredcipranges", json = {'request':'dcip','region':'all'} )
+    self.sorted_ip_list = azure_response.json()
   def get_o365_endpoints(self):
     '''
     Get Office 365 endpoints IP addresses
     '''
-    if self.ip_list != None:
-        self.clear()
+    self.clear()
     office_response = requests.get("https://endpoints.office.com/endpoints/worldwide?clientrequestid={}".format(self.uuid))
     self.ip_list = office_response.json()
+    print(self.ip_list)
     for item in self.ip_list:
         if item.get('ips') != None:
             ip_list = item['ips']
@@ -38,26 +46,32 @@ class EndpointsClient:
             self.sorted_ip_list[item['serviceAreaDisplayName']] = ip_list
         elif ip_list:
             self.sorted_ip_list[item['serviceAreaDisplayName']].extend(ip_list)
-  def export_locally(self):
+  def export_locally(self,prepend_value=''):
     '''
     Store obtained data locally
     '''
     for key in self.sorted_ip_list.keys():
-        with open(f"{self.artifacts_path}/{key}.txt", 'w') as out_file:
+        with open(f"{self.artifacts_path}/{prepend_value}{key}.txt", 'w') as out_file:
             for item in self.sorted_ip_list[key]:
                 out_file.write("%s\n" % item)
   def new_main_page(self):
     '''
     Generate main webpage
     '''
-      artifacts_files = os.listdir(self.artifacts_path)
-      main_page_content = '<html>\n<head>\n</head>\n<body>\n Generated date:<br>' + str(datetime.now()) + '<br><br>Generated list:<br>'
-      for item in artifacts_files:
-        main_page_content = main_page_content + '<a href="' + self.out_path + '/' + item + '" download>' + item + '</href>\n <br>'
-      main_page_content += '</body></html>'
-      with open(self.main_page,'w') as out_file:
-          out_file.write("%s" % main_page_content)
-      self.upload_file(self.main_page,self.main_page)
+    artifacts_files = os.listdir(self.artifacts_path)
+    artifacts_files.sort(reverse=True)
+    main_page_content = '<html>\n<head>\n</head>\n<body>\n Generated date:<br>' + str(datetime.now()) + '<br><br>Generated list:<br>'
+    for item in artifacts_files:
+      print(item)
+      main_page_content = main_page_content + '<a href="' + self.out_path + '/' + item + '" download>' + item + '</href>\n <br>'
+    main_page_content += '</body></html>'
+    with open(self.main_page_path,'w') as out_file:
+        out_file.write("%s" % main_page_content)
+  def upload_main_page(self):
+    '''
+    Upload main webpage
+    '''
+    self.upload_file(self.main_page_path,self.main_page)
   def upload(self, source, dest):
     '''
     Upload a file or directory to a path inside the container
@@ -139,8 +153,11 @@ class EndpointsClient:
     return files
 
 def main(mytimer: func.TimerRequest) -> None:
-  client = EndpointsClient(storage_connection_string=os.environ['AZURE_STORAGE_CONNECTION_STRING'], storage_container_name='$web',working_path='/tmp')
+  client = EndpointsClient(storage_connection_string=os.environ['AzureWebJobsStorage'], storage_container_name='$web',working_path='/tmp')
   client.get_o365_endpoints()
   client.export_locally()
+  client.get_azure_endpoints()
+  client.export_locally(prepend_value='Azure Cloud: region ')
   client.upload_dir()
   client.new_main_page()
+  client.upload_main_page()

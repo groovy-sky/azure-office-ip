@@ -37,3 +37,5 @@ https://github.com/yokawasa/azure-functions-python-samples
 https://docs.microsoft.com/en-us/azure/azure-functions/functions-app-settings#function_app_edit_mode
 
 https://docs.microsoft.com/en-us/python/api/azure-functions/azure.functions?view=azure-python
+
+https://github.com/sendgrid/sendgrid-python#without-mail-helper-class
